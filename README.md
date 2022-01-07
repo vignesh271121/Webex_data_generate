@@ -10,3 +10,6 @@ Here for Authentication Token navigate to -[https://developer.webex.com/docs/get
  
 Next paste that token which is valid for 12 hours and download the chat messages with details.
 Note – There is a small bug  - If we select Nov Month we are getting only oct month data. Please check
+
+
+![image](https://user-images.githubusercontent.com/97229745/148540814-6a4bd522-90b7-4a7f-9baf-58d2fb00bd46.png)
