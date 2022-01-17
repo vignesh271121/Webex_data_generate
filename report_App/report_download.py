@@ -2,10 +2,15 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
 import requests
 import datetime
 import xlsxwriter
+from openpyxl import Workbook, load_workbook
+from openpyxl.chart import (
+    Reference,
+    Series,
+    BarChart3D,
+)
 
 class BearerAuth(requests.auth.AuthBase):
     def __init__(self, token):
@@ -22,7 +27,7 @@ def web_chat(url_val,bear_auth,month_check,room_data_get):
 
     get_date_list = []
     get_Id_list = []
-
+    get_parentID_list = []
 
     for i in range(len(data['items'])):
         k=str(data['items'][i]['created'])
@@ -31,10 +36,12 @@ def web_chat(url_val,bear_auth,month_check,room_data_get):
         if month_val[1] == str(month_check):
             get_date_list.append(data['items'][i]['created'])
             get_Id_list.append(data['items'][i]['id'])
-
+            if "parentId" in data['items'][i]:
+                get_parentID_list.append(data['items'][i]['parentId'])
 
     print(get_Id_list)
     get_date_list.reverse()
+    get_parentID_list.reverse()
     print(get_Id_list)
 
     get_Id_list.reverse()
@@ -44,8 +51,11 @@ def web_chat(url_val,bear_auth,month_check,room_data_get):
     datetime_object = datetime.datetime.strptime(month_number, "%m")
     month_name = datetime_object.strftime("%b")
 
-    workbook = xlsxwriter.Workbook('Enter your Path folder'+room_data_get+"_"+month_name+str(year)+'.xlsx')
-    worksheet = workbook.add_worksheet("My sheet")
+    workbook = xlsxwriter.Workbook('folder_name/'+room_data_get+"_"+month_name+str(year)+'.xlsx')
+    workbook.add_worksheet("Result")
+    worksheet = workbook.add_worksheet(month_name+str(year))
+
+    Dict_ans_email = {}
 
     row = 0
     col = 0
@@ -77,6 +87,14 @@ def web_chat(url_val,bear_auth,month_check,room_data_get):
                     if "parentId" in data['items'][l]:
                         if data['items'][l]['parentId'] == k:
                             print("------------------Answer------------------------")
+                            if data['items'][l]['personEmail'] in Dict_ans_email.keys():
+                                values = Dict_ans_email.get(data['items'][l]['personEmail'])
+                                values = values + 1
+                                Dict_ans_email[data['items'][l]['personEmail']] = values
+
+                            else:
+                                Dict_ans_email[data['items'][l]['personEmail']] = 1
+                                print(Dict_ans_email)
 
                             print(data['items'][l]['personEmail'])
                             worksheet.write(row,col+5,data['items'][l]['personEmail'])
@@ -85,11 +103,31 @@ def web_chat(url_val,bear_auth,month_check,room_data_get):
                                 worksheet.write(row,col+6, data['items'][l]['text'])
                             row += 1
 
+
+    print(Dict_ans_email)
+
+    reply_count_list = sorted(Dict_ans_email.items(), key=lambda x: x[1])
+    reply_count_list.reverse()
+    result_list_val = dict(reply_count_list)
+    print(result_list_val)
+
+    key_val = result_list_val.keys()
+    values_val = result_list_val.values()
+    key_value_list = zip(key_val, values_val)
+
+    path_val = 'folder_name/'+room_data_get+"_"+month_name+str(year)+'.xlsx'
     workbook.close()
-    get_date_list.clear()
-    get_Id_list.clear()
+
+    chat_met = month_name+str(year)
+
+    barchat_val(path_val,key_value_list,chat_met)
+    filename_val = room_data_get+"_"+month_name+str(year)
+
+    return filename_val
+    #pymsgbox.alert(filename_val, 'Download!')
 
 # Press the green button in the gutter to run the script.
+
 
 def download(room_get_data,get_date,get_bear_token):
     room_data = room_get_data
@@ -109,6 +147,27 @@ def download(room_get_data,get_date,get_bear_token):
     elif room_data == "program":
         url_get_data ='https://webexapis.com/v1/messages?roomId=Y2lzY29zcGFyazovL3VzL1JPT00vYzQ2OTk3NTAtZGIyNy0xMWU1LWI0ZjQtZmJmMjI3Y2ZmYWYz&before='+date_format_value+'&max=1000'
 
-    web_chat(url_get_data,bear_token,month,room_data)
+    file_list_name = web_chat(url_get_data,bear_token,month,room_data)
+
+    return file_list_name
+
+def barchat_val(path,get_list_of_key_pair,get_chart_met):
+
+    wb = load_workbook(path)
+    ws = wb['chart']
+
+    rows = get_list_of_key_pair
+    for row in rows:
+        ws.append(row)
+
+    data = Reference(ws, min_col=2, min_row=1, max_col=3, max_row=10)
+    titles = Reference(ws, min_col=1, min_row=1, max_row=10)
+    chart = BarChart3D()
+    chart.title = "Chat metrics"+get_chart_met
+    chart.add_data(data=data, titles_from_data=True)
+    chart.set_categories(titles)
+
+    ws.add_chart(chart, "E5")
+    wb.save(path)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
