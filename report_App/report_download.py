@@ -133,7 +133,7 @@ def download(room_get_data,get_date,get_bear_token):
     room_data = room_get_data
     date = get_date
     datee = datetime.datetime.strptime(date, "%Y-%m-%d")
-    month = int(datee.month)-1
+    month = int(datee.month)
     if month<10:
         month="0"+str(month)
     if month=="00":
